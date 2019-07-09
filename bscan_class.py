@@ -106,6 +106,14 @@ class bscan:
 
     # def __iter__(self):
     #     return self
+
+    # def __add__
+    # should be an "addition" which is actually an averaging!. Two images can be added, and their average returned
+    # should depend on the bypass
+
+    # def __sub__
+    # for background subtraction
+
 	
     def properties(self):
         '''
@@ -121,54 +129,18 @@ class bscan:
 	'''
         return f'(repr):"{self.filename}" - {self.width}x{self.ascanlength}px. Bypass={self.bypass}'
 	
-    def create_img(self, bypass = 7, w = self.printwidth, h = self.printheight):
+    def resize_img(self, w = int(self.width/2), h = self.printheight, new_bypass = 7):
 	'''
-	Returns a transformed image based
+	Returns a transformed image
 	'''
-        if bypass>self.bypass:
+		if self.debug: print(f'Creating image from "{self.filename}" bypass {self.bypass}, i.e. datatype: {self.datatype_bypass[self.bypass]}.')
+        if new_bypass>self.bypass:
              self.update_bypass(bypass)
-        if self.debug: print(f'Creating image from "{self.filename}" bypass {self.bypass}, i.e. datatype: {self.datatype_bypass[self.bypass]}.')
-		
-		
-		
         return skimage.transform.resize(self.raw, (w, h), mode='reflect', preserve_range=True)
-	
-	
 
-	
-    def this(self):
-        # from bypassmode 3 to bypassmode 6
-        # consider: https://stackoverflow.com/questions/25870923/how-to-square-or-raise-to-a-power-elementwise-a-2d-numpy-array
-        idx_split = int(self.width/2)
-        res = np.zeros((idx_split, self.ascanlength), dtype=self.datatype_bypass[5])
-        def byp_6_ref(Im_el,Re_el): 
-            return np.multiply(np.log10(np.sqrt(np.add(Im_el*Im_el, Re_el*Re_el))), 20)
-        byp_6 = np.vectorize(byp_6_ref, otypes=[self.datatype_bypass[5]])
-        res = byp_6(self.raw[:idx_split], self.raw[idx_split:])
-        self.raw = res.astype(self.datatype_bypass[6])
-        self.width = self.raw.shape[0]
-        self.bypass = 6
-        
-    def that(self):
-        '''from bypassmode 3 to bypassmode 6
-        '''
-        idx_split = int(self.raw.shape[0]/2)
-        def byp_6(Im_mat,Re_mat): 
-            return np.multiply(
-                            np.log10(
-                                np.sqrt(
-                                    np.add(
-                                        np.power(Im_mat, 2, dtype = self.datatype_bypass[4]), 
-                                        np.power(Re_mat, 2, dtype = self.datatype_bypass[4]),
-                                        dtype = self.datatype_bypass[4] ),
-                                dtype = self.datatype_bypass[5] ),
-                            dtype = self.datatype_bypass[6] ), 
-                        20)
-        res = byp_6(self.raw[:idx_split], self.raw[idx_split:])
-        self.raw = res.astype(self.datatype_bypass[6])
-        self.width = self.raw.shape[0]
-        self.bypass = 6
 
+		
+		
     def update_bypass(self,new_bypass=6):
         '''
         remember to cast to the appropriate data types!!
@@ -231,37 +203,6 @@ class bscan:
         #return self.raw
         # return self
 
-
-
-
-    # def __add__
-    # should be an "addition" which is actually an averaging!. Two images can be added, and their average returned
-    # should depend on the bypass
-
-    # def __sub__
-    # for background subtraction
-
-
-
-    @staticmethod
-    def get_path(initdir = 'C:\\Users\\user\\Google Drive\\OCT\\', boxtitle="Select OCT measurement"):
-        from tkinter import filedialog
-        import tkinter
-
-        root = tkinter.Tk()
-        root.filename =  filedialog.askopenfilename(initialdir = initdir,title = boxtitle, filetypes = (("all files","*.*"),("bin files","*.bin")))
-        root.withdraw()
-
-        if root.filename == '':
-            raise ValueError('File invalid or not specified. /LB ')
-
-        return root.filename
-
-    @staticmethod
-    def MessageBox(title, text, style):
-        return ctypes.windll.user32.MessageBoxW(0, text, title, style)
-
-
     def mod1(self):
         # print ("uses vectorialized func")
         def modulus_ref(cmplx):
@@ -285,7 +226,63 @@ class bscan:
         temp = np.zeros( (self.ascanlength, self.width), dtype=self.datatype_bypass[5])
         temp = modulus_square(self.raw)
         return temp
-        self.bypass = 4
+        self.bypass = 4		
+
+    def this(self):
+        # from bypassmode 3 to bypassmode 6
+        # consider: https://stackoverflow.com/questions/25870923/how-to-square-or-raise-to-a-power-elementwise-a-2d-numpy-array
+        idx_split = int(self.width/2)
+        res = np.zeros((idx_split, self.ascanlength), dtype=self.datatype_bypass[5])
+        def byp_6_ref(Im_el,Re_el): 
+            return np.multiply(np.log10(np.sqrt(np.add(Im_el*Im_el, Re_el*Re_el))), 20)
+        byp_6 = np.vectorize(byp_6_ref, otypes=[self.datatype_bypass[5]])
+        res = byp_6(self.raw[:idx_split], self.raw[idx_split:])
+        self.raw = res.astype(self.datatype_bypass[6])
+        self.width = self.raw.shape[0]
+        self.bypass = 6
+        
+    def that(self):
+        '''from bypassmode 3 to bypassmode 6
+        '''
+        idx_split = int(self.raw.shape[0]/2)
+        def byp_6(Im_mat,Re_mat): 
+            return np.multiply(
+                            np.log10(
+                                np.sqrt(
+                                    np.add(
+                                        np.power(Im_mat, 2, dtype = self.datatype_bypass[4]), 
+                                        np.power(Re_mat, 2, dtype = self.datatype_bypass[4]),
+                                        dtype = self.datatype_bypass[4] ),
+                                dtype = self.datatype_bypass[5] ),
+                            dtype = self.datatype_bypass[6] ), 
+                        20)
+        res = byp_6(self.raw[:idx_split], self.raw[idx_split:])
+        self.raw = res.astype(self.datatype_bypass[6])
+        self.width = self.raw.shape[0]
+        self.bypass = 6
+
+		
+		
+		
+		
+    @staticmethod
+    def get_path(initdir = 'C:\\Users\\user\\Google Drive\\OCT\\', boxtitle="Select OCT measurement"):
+        from tkinter import filedialog
+        import tkinter
+
+        root = tkinter.Tk()
+        root.filename =  filedialog.askopenfilename(initialdir = initdir,title = boxtitle, filetypes = (("all files","*.*"),("bin files","*.bin")))
+        root.withdraw()
+
+        if root.filename == '':
+            raise ValueError('File invalid or not specified. /LB ')
+
+        return root.filename
+
+    @staticmethod
+    def MessageBox(title, text, style):
+        return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+
 
     #
     pass
