@@ -39,7 +39,7 @@ class bscan:
         else:
             self.path = self.get_path()
 
-		self.dirname = os.path.dirname(self.path)
+        self.dirname = os.path.dirname(self.path)
         self.filename = os.path.basename(self.path)
 
         self.filesize = os.path.getsize(self.path) #in bytes
@@ -65,7 +65,7 @@ class bscan:
 
         self.datatype = self.datatype_bypass[self.bypass]
 
-		# check that remainder is zero! (in other words, make sure that width results in an int
+        # check that remainder is zero! (in other words, make sure that width results in an int
         self.width = int(self.filesize/(self.ascanlength*self.datatype.itemsize))
 
         # reads from the file and returns a numpy array
@@ -83,23 +83,23 @@ class bscan:
         self.offset = -32
 
     def __len__(self):
-	'''
-	python requires __len__() to return an integer. In this case, without knowing if it's the best solution,
-    len() has been defined to be the total number of pizels in the image. Could also be the filesize(bytes)
-	'''
-		return((self.width*self.ascanlength))
+        '''
+        python requires __len__() to return an integer. In this case, without knowing if it's the best solution,
+        len() has been defined to be the total number of pizels in the image. Could also be the filesize(bytes)
+        '''
+        return((self.width*self.ascanlength))
     
     def __call__(self):
-	'''
-	when an instance (name e.g. "thumb") of this class is created, calling thumb() will execute the lines below
-	'''
+        '''
+        when an instance (name e.g. "thumb") of this class is created, calling thumb() will execute the lines below
+        '''
         return self.raw
 
     def __getitem__(self,idx):
-	'''
-	To iterate over the Bscan, we need to access the A-scans.
-	TODO self.raw might be stored in Transposed form, make sure that the correct one (between row or column) is returned by this function
-	'''
+        '''
+        To iterate over the Bscan, we need to access the A-scans.
+        TODO self.raw might be stored in Transposed form, make sure that the correct one (between row or column) is returned by this function
+        '''
         if ((idx<0) or (idx>self.width)):
             raise IndexError('The specified A-scan in not in the image. /LB')
         return(self.raw[idx,:])
@@ -114,33 +114,35 @@ class bscan:
     # def __sub__
     # for background subtraction
 
-	
+    
     def properties(self):
         '''
-		returns the dictionary of the "bscan" class attributes (props is short for properties)
-		NOTE: theres a built-in function for this: it's: ```vars(self)```
-		'''
-		return {key:value for key, value in self.__dict__.items() if not key.startswith('__') and not callable(key)}
+        returns the dictionary of the "bscan" class attributes (props is short for properties)
+        NOTE: theres a built-in function for this: it's: ```vars(self)```
+        '''
+        return {key:value for key, value in self.__dict__.items() if not key.startswith('__') and not callable(key)}
   
     def __repr__(self):
-	'''
-	Returns a string that will be printed out when the built-in "print" is called
-	Blueprint: "[filename] - [width] x [height] px. Bypass=[bypassmode]"
-	'''
+        '''
+        Returns a string that will be printed out when the built-in "print" is called
+        Blueprint: "[filename] - [width] x [height] px. Bypass=[bypassmode]"
+        '''
         return f'(repr):"{self.filename}" - {self.width}x{self.ascanlength}px. Bypass={self.bypass}'
-	
-    def resize_img(self, w = int(self.width/2), h = self.printheight, new_bypass = 7):
-	'''
-	Returns a transformed image
-	'''
-		if self.debug: print(f'Creating image from "{self.filename}" bypass {self.bypass}, i.e. datatype: {self.datatype_bypass[self.bypass]}.')
+    
+    def resize_img(self, w = None, h = None, new_bypass = 7):
+        '''
+        Returns a transformed image
+        '''
+        if w is None: w = int(self.width/2)
+        if h is None: h = self.printheight
+        if self.debug: print(f'Creating image from "{self.filename}" bypass {self.bypass}, i.e. datatype: {self.datatype_bypass[self.bypass]}.')
         if new_bypass>self.bypass:
              self.update_bypass(bypass)
         return skimage.transform.resize(self.raw, (w, h), mode='reflect', preserve_range=True)
 
 
-		
-		
+        
+        
     def update_bypass(self,new_bypass=6):
         '''
         remember to cast to the appropriate data types!!
@@ -226,7 +228,7 @@ class bscan:
         temp = np.zeros( (self.ascanlength, self.width), dtype=self.datatype_bypass[5])
         temp = modulus_square(self.raw)
         return temp
-        self.bypass = 4		
+        self.bypass = 4     
 
     def this(self):
         # from bypassmode 3 to bypassmode 6
@@ -242,7 +244,8 @@ class bscan:
         self.bypass = 6
         
     def that(self):
-        '''from bypassmode 3 to bypassmode 6
+        '''
+        from bypassmode 3 to bypassmode 6
         '''
         idx_split = int(self.raw.shape[0]/2)
         def byp_6(Im_mat,Re_mat): 
@@ -261,10 +264,10 @@ class bscan:
         self.width = self.raw.shape[0]
         self.bypass = 6
 
-		
-		
-		
-		
+        
+        
+        
+        
     @staticmethod
     def get_path(initdir = 'C:\\Users\\user\\Google Drive\\OCT\\', boxtitle="Select OCT measurement"):
         from tkinter import filedialog

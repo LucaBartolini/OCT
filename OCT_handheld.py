@@ -37,9 +37,11 @@ from skimage import data, img_as_float
 from skimage.segmentation import (morphological_chan_vese, checkerboard_level_set)
 # -
 
-initial_path = r"C:\Users\user\Desktop\20190708_CscanThumbRel"
+initial_path = r"C:\Users\user\Documents\Axsun\01-Measurements\20190712 - test sponge"
 files = os.listdir(initial_path)
 files = [f for f in files if os.path.isfile(os.path.join(initial_path, f))] # f not in ['processed'] ]
+# issue: the first file created by LabView is always empty. I am deleting it from the list
+files.pop(0)
 print(f'Found {len(files)} files')
 debug = True
 
@@ -116,7 +118,7 @@ bottom = 800,
 N_iter = 40,
 segmentation_flag = False,
 cropping_flag = True,
-filtering_flag = True,
+filtering_flag = False,
 savefile_flag = False,
 initial_path = initial_path,
 filtermode = 'NLM',
@@ -133,7 +135,7 @@ f'\n    Cropping is {onoff(p["cropping_flag"])}'\
 f'\n   Filtering is {onoff(p["filtering_flag"])}'\
 f'\n    Savefile is {onoff(p["savefile_flag"])} \n')
 
-for i,file in enumerate(files[:10]):
+for i,file in enumerate(files):
     print(f'File "{file}" - {i+1}/{len(files)}')
     d[file]={}
     # relaxed or suction?
@@ -152,8 +154,8 @@ for i,file in enumerate(files[:10]):
     #     print(sigma_est)
 
     # filtering the image
-    im = filtering(raw, mode=p['filtermode'],sigma=p['sigmaNLM'] ) if p['filtering_flag'] else raw
-#     im = filtering(raw, mode='bilateral') if filtering_flag else raw
+#     im = filtering(raw, mode=p['filtermode'],sigma=p['sigmaNLM'] ) if p['filtering_flag'] else raw
+    im = filtering(raw, mode='bilateral') if p['filtering_flag'] else raw
 
     d[file]['image'] = im
     
@@ -217,8 +219,8 @@ contour = False
 cmap = 'gray' if contour else None
 dpi = 450
 
-for f in files[:10]:
-    fig, ax = plt.subplots(figsize=(10,4.5))
+for f in files[:]:
+    fig, ax = plt.subplots(figsize=(10,4.5));
     
     if p['cropping_flag']:
         cur_path = os.path.join(initial_path,f)
