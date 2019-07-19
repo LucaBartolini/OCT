@@ -45,8 +45,7 @@ class bscan:
         self.filesize = os.path.getsize(self.path) #in bytes
         self.debug = kwargs.get('debug', False)
         self.printwidth = kwargs.get('printwidth', 500)
-        self.printheight = kwargs.get('printheight', 512)
-
+        self.printheight = kwargs.get('printheight', 512) # half of the height
         self.ascanlength = kwargs.get('ascanlength', 1024)
 
         self.bypass = kwargs.get('bypass',8)
@@ -54,13 +53,12 @@ class bscan:
         self.datatype_bypass = {
         1: np.dtype(np.uint16),
         2: np.dtype([('Im', '>i2'), ('Re', '>i2')]),
-#         3: np.dtype([('Im', '<i2'), ('Re', '<i2')]),
-        3: np.dtype('<i2'), # it will have to be reshaped though.
+        3: np.dtype('<i2'), # it will have to be reshaped later:  LabView saves an image made by 2 juxtaposed images
         4: np.dtype('<u4'),
         5: np.dtype('<u2'),
         6: np.dtype('<u2'),
         7: np.dtype('<u1'),
-        8: np.dtype('>u1')
+        8: np.dtype('<u1'),
         }
 
         self.datatype = self.datatype_bypass[self.bypass]
