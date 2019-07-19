@@ -13,7 +13,8 @@
 #     name: python3
 # ---
 
-# +
+# + {"code_folding": []}
+## imports
 # %matplotlib nbagg
 # # %matplotlib inline
 import matplotlib.pyplot as plt
@@ -37,11 +38,11 @@ from skimage import data, img_as_float
 from skimage.segmentation import (morphological_chan_vese, checkerboard_level_set)
 # -
 
-initial_path = r"C:\Users\user\Documents\Axsun\01-Measurements\20190712 - test sponge"
+# initial_path = r"C:\Users\user\Google Drive\OCT\Measurements\20190410 - step PDMS 2"
+initial_path = r"C:\Users\lucab\Desktop\20190718_PDMS_Sample20180219_2"
 files = os.listdir(initial_path)
 files = [f for f in files if os.path.isfile(os.path.join(initial_path, f))] # f not in ['processed'] ]
 # issue: the first file created by LabView is always empty. I am deleting it from the list
-files.pop(0)
 print(f'Found {len(files)} files')
 debug = True
 
@@ -111,15 +112,15 @@ def plot_profile (profiles: list):
 # + {"code_folding": []}
 #parameters
 p=dict(
-left = 310, #78
-right = 2238, #580
+left = 310, #78,
+right = 2238, #580,
 top = 300,
 bottom = 800,
-N_iter = 40,
-segmentation_flag = False,
+N_iter = 20,
+segmentation_flag = True,
 cropping_flag = True,
-filtering_flag = False,
-savefile_flag = False,
+filtering_flag = True,
+savefile_flag = True,
 initial_path = initial_path,
 filtermode = 'NLM',
 sigmaNLM = 3,
@@ -146,7 +147,7 @@ for i,file in enumerate(files):
         
     # get raw image
     cur_path = os.path.join(initial_path,file)
-    handheld_bscan = bscan_class.bscan(path = cur_path, debug = debug, bypass=7)
+    handheld_bscan = bscan_class.bscan(path = cur_path, debug = debug, bypass=8)
     raw = handheld_bscan.raw.T[p['top']:p['bottom'],p['left']:p['right']] \
                         if p['cropping_flag'] else handheld_bscan.raw.T
     # estimating sigmaNLM
@@ -154,8 +155,8 @@ for i,file in enumerate(files):
     #     print(sigma_est)
 
     # filtering the image
-#     im = filtering(raw, mode=p['filtermode'],sigma=p['sigmaNLM'] ) if p['filtering_flag'] else raw
-    im = filtering(raw, mode='bilateral') if p['filtering_flag'] else raw
+    im = filtering(raw, mode=p['filtermode'],sigma=p['sigmaNLM'] ) if p['filtering_flag'] else raw
+#     im = filtering(raw, mode='bilateral') if p['filtering_flag'] else raw
 
     d[file]['image'] = im
     
@@ -186,7 +187,8 @@ if p['savefile_flag']:
 #     d['params'] = p
     import bz2 # to zip the pickle file: 
     import pickle
-    pickle_name = os.path.basename(os.path.normpath(initial_path))+'_processed'
+    pickle_name = (os.path.normpath(initial_path))+'_processed.bz2'
+    print(f"Saving at location: {pickle_name}")
     sfile = bz2.BZ2File(pickle_name, 'w')
     pickle.dump(d, sfile)
     sfile.close()
@@ -214,14 +216,15 @@ fig.savefig(title+'.png',dpi=600)
 
 # + {"code_folding": [22, 25]}
 ## plotting of segmentation results
+plt.ioff()
 savefig_flag = True
 contour = False
 cmap = 'gray' if contour else None
-dpi = 450
+dpi = 300
 
-for f in files[:]:
+for f in files[:2]:
     fig, ax = plt.subplots(figsize=(10,4.5));
-    
+    ## this crops twice :/
     if p['cropping_flag']:
         cur_path = os.path.join(initial_path,f)
         handheld_bscan = bscan_class.bscan(path = cur_path, debug = debug)
