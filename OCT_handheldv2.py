@@ -37,33 +37,35 @@ init_notebook_mode(connected=True) # to use in Jupyter
 import cv2 as cv
 from skimage import data, img_as_float
 from skimage.segmentation import (morphological_chan_vese, checkerboard_level_set)
-# -
 
+# +
 initial_path = r"C:\Users\user\Google Drive\OCT\Measurements\20190410 - step PDMS 2"
 # initial_path = r"C:\Users\lucab\Desktop\20190718_PDMS_Sample20180219_2"
-files = os.listdir(initial_path)
-files = [f for f in files if os.path.isfile(os.path.join(initial_path, f))] # f not in ['processed'] ]
+
+files = OCT_lib.files_in_folder(initdir = initial_path)
 # issue: the first file created by LabView is always empty. I am deleting it from the list
-print(f'Found {len(files)} files')
 debug = True
 
 # + {"code_folding": []}
 #parameters
 p = dict(
+cropping_flag = True,
 left = 310, #78,
 right = 2238, #580,
 top = 300,
 bottom = 800,
 N_iter = 20,
 segmentation_flag = True,
-cropping_flag = True,
 filtermode = 'NLM', # set to 'None' for no filtering
-savezip_flag = True,
-savepng_flag = True,
+save_zip = False,
+save_png = True,
+save_dic = Flase,
 initial_path = initial_path,
 sigmaNLM = 3,
 bypassmode = 7,
 )
+
+if p['save_zip']: p['save_dic']=True # zip file is saved based on the dictionary
 
 onoff = lambda flag: "ON" if flag else "OFF"
 print(f'Analysis settings: '\
@@ -72,12 +74,14 @@ f'\n    Cropping is {onoff(p["cropping_flag"])}'\
 f'\n   Filtering is {onoff(p["filtermode"])}'\
 f'\n    Savefile is {onoff(p["savezip_flag"])}')
 
-# + {"code_folding": []}
-d = {}
-      
+# + {"code_folding": [27]}
+if p['save_dic']:
+    d = dict.fromkeys(files) 
+
 for i,file in enumerate(files):
     print(f'File "{file}" - {i+1}/{len(files)}')
-    d[file]={}
+    if p['save_dic']:
+        d[file]={}
     # relaxed or suction?
     if   'suc' in file: d[file]['pressure'] = 'suction'
     elif 'rel' in file: d[file]['pressure'] = 'relaxed'
@@ -90,52 +94,61 @@ for i,file in enumerate(files):
         raw = handheld_bscan.raw.T[p['top']:p['bottom'],p['left']:p['right']]
     else: 
         raw =handheld_bscan.raw.T
+        
     # filters the image
     im = filtering(raw, mode=p['filtermode'], sigma=p['sigmaNLM'] )
     
-    d[file]['image'] = im
+    if p['save_dic']:
+        d[file]['image'] = im
     
     # segmentation
     if p['segmentation_flag']:
         init_ls = get_level_set(im, mode='otsu')  # level set
         # morphological snakes ACWE
         ls = morphological_chan_vese(im, p['N_iter'], init_level_set=init_ls, smoothing=4)
-        d[file]['ls'] = ls # B&W image returned by segmentation
-        
+        if p['save_dic']:
+            d[file]['ls'] = ls # B&W image returned by segmentation
+
         # top contour: searches for first non-zero in the column 
         # (column iteration is usual iteration (on rows), but done on the transposed matrix
         profile = np.zeros((len(ls.T),1))
-        for i,a in enumerate(ls.T):
+        for i,Ascan in enumerate(ls.T):
             try:
                 # sometimes, in the upper rows of the image, there is the recognition of spurious areas from aritifical reflections, 
                 # that messes up the profile detection
                 excluded_px = 100 # rows from the top that are excluded from the profile search.
-                profile[i] = np.nonzero(a[excluded_px:]>0.5)[0][0]+excluded_px
+                # index of the first non-zero element (considering also the excluded_px)
+                profile[i] = excluded_px + np.nonzero(Ascan[excluded_px:]>0.5)[0][0] 
             except error as e:
                 print(f"Some error happened: {e}. \nMoving on...")
                 profile[i] = None
-
-        d[file]['profile'] = profile
         
+        if p['save_dic']:
+            d[file]['profile'] = profile
+    
+    # saving png image
+    if p['save_png']:
+        fig, ax = plt.subplots()
+        
+        ax.set_title(title)
+
+        
+    
+    
 # save data: raw_png, png_with_contours, profile height, delta_z
 if p['savefile_flag']:
 #     d['params'] = p
     import bz2 # to zip the pickle file: 
     import pickle
     pickle_name = (os.path.normpath(initial_path))+'_processed.bz2'
-    print(f"Saving at location: {pickle_name}")
+    print(f"Saving file at path: {pickle_name}")
     sfile = bz2.BZ2File(pickle_name, 'w')
     pickle.dump(d, sfile)
     sfile.close()
-    
-    
-# position = 'Left Index2'
-# rel = bscan_class.bscan(path = initial_path+r'\\'+position+'_relaxed', debug = True)
-# suc = bscan_class.bscan(path = initial_path+r'\\'+position+'_suction', debug = True)
 # -
 
 #plot_raw(d['Left Anular_suction']['ls'])#,d['Left Anular_suction']['ls']])
-plot_profile([d['Left Anular_suction']['profile'],d['Left Anular_relaxed']['profile']])
+plot_profiles([d['Left Anular_suction']['profile'],d['Left Anular_relaxed']['profile']])
 
 title = 'Profile extensions for different locations'
 fig, ax = plt.subplots()
@@ -157,7 +170,7 @@ contour = False
 cmap = 'gray' if contour else None
 dpi = 300
 
-for f in files[:2]:
+for f in files[]:
     fig, ax = plt.subplots(figsize=(10,4.5));
     ## this crops twice :/
     if p['cropping_flag']:
