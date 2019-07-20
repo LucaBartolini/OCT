@@ -17,7 +17,7 @@ import matplotlib.cm as cm  # colormaps
 import matplotlib.pyplot as plt
 import numpy as np
 
-# import skimage.transform
+import skimage.transform
 
 # TODO:
 # check big- or little-endianness of the datatypes
@@ -32,7 +32,9 @@ class bscan:
     '''
 
     def __init__(self, **kwargs):
-
+        '''
+        :path -> path to the binary file of the BScan
+        '''
         # later: "bckgnd" kwarg for subtraction and dispersion compensation
         if 'path' in kwargs:
             temp_path = kwargs.get('path')
@@ -40,12 +42,12 @@ class bscan:
                 self.path = temp_path
             # if argument is a folder, choosefile dialog starts from there
             elif os.path.isdir(temp_path):
-                self.path = self.get_path(temp_path)
+                self.path = get_path(temp_path)
             else:  # if no argument given
                 raise Exception(
                     'The path specified is invalid or non-existent /LB')
         else:
-            self.path = self.get_path()
+            self.path = get_path()
 
         self.dirname = os.path.dirname(self.path)
         self.filename = os.path.basename(self.path)
@@ -76,16 +78,13 @@ class bscan:
         self.width = int(
             self.filesize/(self.ascanlength*self.datatype.itemsize))
 
-        # reads from the file and returns a numpy array
+        # reads from the file and returns a the RAW data as numpy array
         with cbook.get_sample_data(self.path) as dfile:
             self.raw = np.frombuffer(dfile.read(), dtype=self.datatype).reshape(
-                (self.width, self.ascanlength))
-        print(f'Image shape = {self.raw.shape}')
-
-        # self.raw = np.transpose(self.raw) # The OCT saves RAW data in a transposed image (rotated 90deg)
+                (self.width, self.ascanlength)).T
 
         print(
-            f'"{self.filename}" loaded.\n - {self.width}x{self.ascanlength}px, bypass: {self.bypass}\n')
+            f'"{self.filename}" loaded.\n - {self.ascanlength}x{self.width}px, bypass: {self.bypass}\n')
 
         # to get to bypass 7 and for imaging purposes
         self.gain_ref = 7  # actual gain as given by Axsun
@@ -153,6 +152,82 @@ class bscan:
         if new_bypass > self.bypass:
             self.update_bypass(bypass)
         return skimage.transform.resize(self.raw, (w, h), mode='reflect', preserve_range=True)
+
+    def crop(self, top=None, bottom=None, left=None, right=None):
+        '''
+        Crops the OCT image
+        '''
+        # assert that params are integer
+        self.raw = self.raw[top:bottom, left:right]
+
+    def custom_filter(self, **kwargs):
+        '''
+        Applies filter to the bscan
+        :mode -> Filtering mode, specifically "bilateral" or "NLM" or "None"
+        '''
+        mode = kwargs.get('mode')
+
+        if mode in ['None', None]:
+            return
+
+        if mode not in ['bilateral', 'NLM']:
+            raise ValueError(
+                'Filtering Mode not understood. Pass mode="bilateral" or mode="NLM"')
+
+        if mode in ['bilateral']:
+            d = kwargs.get('d', 5)
+            sigma_color = kwargs.get('sigma_color', 30)
+            sigma_space = kwargs.get('sigma_space', d*3)
+            self.raw = cv.bilateralFilter(raw, d, sigma_color, sigma_space)
+        elif mode in ['NLM']:
+            from skimage.restoration import denoise_nl_means
+            sigma_est = kwargs.get('sigma', None)
+            if sigma_est is None:
+                from skimage.restoration import estimate_sigma
+                print('Warning, no parameter "sigma_est" passed for this type of filter. Automatic estimation takes computational time!')
+                sigma_est = np.mean(estimate_sigma(img, multichannel=False))
+                print(sigma_est)
+            patch_kw = {
+                'patch_size': 5,      # 5x5 patches
+                'patch_distance': 6,  # 13x13 search area
+                'multichannel': False}
+            self.raw = denoise_nl_means(
+                self.raw, h=12*sigma_est, sigma=sigma_est, fast_mode=True, **patch_kw)
+
+    def get_level_set(self, **kwargs):
+        '''
+        Returns a level-set obtained as defined from :param 'mode'.
+        Can be "otsu", then it just returns a level set with Otsu threshold
+        Otherwise returns a Morphological Chan Vese segmentation  
+        '''
+        N_iter = kwargs.get('N_iter', 30)
+        sm = kwargs.get('smoothing', 4)
+        mode = kwargs.get('mode', None)
+
+        # level set with otsu
+        init_ls = get_level_set(im, mode='otsu')
+
+        if mode in ['Otsu', 'otsu']:
+            return init_ls
+        else:
+            # morphological snakes ACWE
+            return morphological_chan_vese(self.raw, init_level_set=init_ls, smoothing=sm)
+
+    def get_profile(self, levelset):
+        profile = np.zeros((len(levelset.T), 1))
+        for i, Ascan in enumerate(levelset.T):
+            try:
+                # sometimes, in the upper rows of the image, there is the recognition of spurious areas from aritifical reflections,
+                # that messes up the profile detection
+                # rows from the top that are excluded from the profile search.
+                excluded_px = 100
+                # index of the first non-zero element (considering also the excluded_px)
+                profile[i] = excluded_px + \
+                    np.nonzero(Ascan[excluded_px:] > 0.5)[0][0]
+            except error as e:
+                print(f"Some error happened: {e}. \nMoving on...")
+                profile[i] = None
+        return profile
 
     def update_bypass(self, new_bypass=6):
         '''
@@ -366,10 +441,8 @@ def get_level_set(img, **kwargs):
 
 def filtering(img, **kwargs):
     '''
-    Returns a filtered image
-
+    Returns a filtered image.
     Filtering mode, specifically "bilateral" or "NLM"
-
     '''
     mode = kwargs.get('mode', 'bilateral')
 
@@ -401,9 +474,10 @@ def filtering(img, **kwargs):
 
 def plot_raw(rawimgs: list):
     fig, ax = plt.subplots()
-    assert type(
-        rawimgs) == list, "Please provide raw images in a list. Even if it's one image only, put it within square brackets."
+    assert (type(rawimgs) == list), "Please provide raw images in a list. Even if it's one image only, put it within square brackets."
     for rawimg in rawimgs:
+        if type(rawimg) == bscan:
+            rawimg = rawimg.raw
         ax.imshow(rawimg)
     plt.show()
 
