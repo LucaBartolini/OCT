@@ -1,0 +1,53 @@
+# Created by https://www.gitignore.io/api/windows,visualstudiocode
+# Edit at https://www.gitignore.io/?templates=windows,visualstudiocode
+
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.vscode
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+
+### Windows ###
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows shortcuts
+*.lnk
+
+# MY OWN (LucaBartolini)
+.DS_store
+OCT
+*.gdoc
+*.pyc
+*.png
+pina.csv
+__pycache__
+*.pptx
+*.docx
+Measurements
+*.bz2
+.ipynb_checkpoints
+*.tif
+Tests (1)
+docs/
+PARABOLIC_FIT_for_pdms_deformation .ipynb
+
+# End of https://www.gitignore.io/api/windows,visualstudiocode

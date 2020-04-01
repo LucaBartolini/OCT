@@ -1,0 +1,41 @@
+{
+   "crop": {
+      "switch": false,
+      "left": null,
+      "right": null,
+      "top": null,
+      "bottom": null
+   },
+   "resize": {
+      "switch": false,
+      "width_factor": 1,
+      "height_factor": 1
+   },
+   "filtering": {
+      "switch": true,
+      "mode": "bilateral",
+      "bilateral": {
+         "d": 15,
+         "sigma_color": 90,
+         "sigma_space": 80
+      },
+      "NLM": {
+         "sigma": 6
+      }
+   },
+   "segmentation": {
+      "switch": true,
+      "mode": "otsu",
+      "ignore_top_px": 150,
+      "N_iter": 20
+   },
+   "OCT": {
+      "axial_res": 5.75,
+      "aperture_size": 4,
+      "bypassmode": 8
+   },
+   "save_png": true,
+   "make_res": true,
+   "save_zip": true,
+   "save_settings": true
+}
